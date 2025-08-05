@@ -1,0 +1,56 @@
+# portfolio_tracker.py
+
+import pandas as pd
+import yfinance as yf
+import matplotlib.pyplot as plt
+
+def get_stock_price(ticker: str) -> float:
+    """Fetch latest closing price for a ticker using yfinance."""
+    try:
+        hist = yf.Ticker(ticker).history(period="1d")
+        return float(hist['Close'].iloc[-1])
+    except Exception as e:
+        print(f"Error fetching price for {ticker}: {e}")
+        return None
+
+def portfolio_tracker():
+    print("Welcome to Portfolio Tracker 🧮")
+    portfolio = []
+    while True:
+        symbol = input("Enter stock ticker (or 'done' to finish): ").strip().upper()
+        if symbol == 'DONE':
+            break
+        if any(p['Stock'] == symbol for p in portfolio):
+            print(f"{symbol} is already added.")
+            continue
+        try:
+            qty = int(input(f"Enter quantity of {symbol}: "))
+            price = get_stock_price(symbol)
+            if price is None or qty <= 0:
+                raise ValueError
+        except ValueError:
+            print("Invalid entry. Try again.")
+            continue
+        portfolio.append({"Stock": symbol, "Quantity": qty, "Price": price})
+        print(f"Added {qty} shares of {symbol} at {price:.2f}")
+
+    df = pd.DataFrame(portfolio)
+    if df.empty:
+        print("No stocks entered. Exiting.")
+        return
+
+    df['Value'] = df['Quantity'] * df['Price']
+    total = df['Value'].sum()
+    df['Allocation (%)'] = (df['Value'] / total * 100).round(2)
+
+    print("\n=== Portfolio Summary ===")
+    print(df[['Stock','Quantity','Price','Value','Allocation (%)']])
+    print(f"\nTotal Portfolio Value: ₹{total:,.2f}")
+
+    plt.figure(figsize=(6,6))
+    plt.pie(df['Value'], labels=df['Stock'], autopct='%1.1f%%', startangle=140)
+    plt.title("Portfolio Allocation")
+    plt.show()
+
+if __name__ == "__main__":
+    portfolio_tracker()
